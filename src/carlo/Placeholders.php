@@ -9,18 +9,59 @@ namespace carlo;
  * Avec $placeholders (élément sans exemple), les champs non renseignés reçoivent un contenu généré
  * d'après leur type. Sans, ils restent vides : un exemple qui omet un champ le veut vide.
  *
+ * Un champ `reference` d'exemple accepte, outre des identifiants, des contenus qui n'existent pas dans le CMS :
+ * un nombre (autant de contenus générés d'après leur type) ou une liste de contenus décrits (cf. storyReferences()).
+ *
  * Le driver qui l'utilise garde sa mise en forme (WordPress, démo…) : le trait s'insère devant.
  */
 trait Placeholders
 {
     public bool $placeholders = false;
 
+    /**
+     * Images de remplacement désignées par un identifiant (image d'un contenu fictif) : identifiant => « WxH ».
+     */
+    protected array $placeholderImages = [];
+
     protected function loadValue(array $field, mixed $value, LoadContext $ctx): mixed
     {
         if ($this->placeholders && $value === null) {
             $value = $this->placeholder($field);
+        } elseif ($field['type'] === 'reference' && $value !== null) {
+            $value = $this->storyReferences($field, $value);
         }
         return parent::loadValue($field, $value, $ctx);
+    }
+
+    /**
+     * Valeur d'exemple d'un champ `reference`, en identifiants : un identifiant reste tel quel ; un nombre N donne N
+     * contenus générés (tous leurs champs remplis) ; un tableau décrit un contenu (champs omis vides). Les contenus
+     * fictifs sont créés par le driver (fakeReference()), sans toucher aux données du CMS.
+     */
+    private function storyReferences(array $field, mixed $value): array
+    {
+        if (is_int($value)) {
+            // null : contenu entièrement généré.
+            $value = array_fill(0, max(0, $field['max'] ? min($value, $field['max']) : $value), null);
+        }
+        $ids = [];
+        foreach ((array) $value as $item) {
+            $ids[] = match (true) {
+                $item === null => $this->fakeReference($field, [], true),
+                is_array($item) => $this->fakeReference($field, $item, false),
+                default => $item,
+            };
+        }
+        return array_values(array_filter($ids));
+    }
+
+    /**
+     * Contenu fictif d'un champ `reference`, décrit par $item (avec $generate, ses champs vides sont générés) :
+     * son identifiant, ou null si le CMS n'en crée pas (par défaut).
+     */
+    protected function fakeReference(array $field, array $item, bool $generate): int|string|null
+    {
+        return null;
     }
 
     // Les éléments obligatoires (min), complétés jusqu'à trois pour voir la mise en page se répéter, dans la limite de max.
@@ -66,7 +107,12 @@ trait Placeholders
 
     public function img(string $key, string $default_size, array $source_sizes, $mobile_key, array $mobile_source_sizes, array $imgAttrs)
     {
-        $value = is_numeric($key) ? $key : $this->get($key);
+        // Un identifiant, une dimension passée telle quelle (valeur d'un argument), sinon le nom d'un champ.
+        $value = match (true) {
+            is_numeric($key) => $this->placeholderImages[$key] ?? $key,
+            (bool) preg_match('/^\d+x\d+$/', $key) => $key,
+            default => $this->get($key),
+        };
         if (is_string($value) && preg_match('/^(\d+)x(\d+)$/', $value, $size)) {
             [, $width, $height] = $size;
             $svg = <<<SVG

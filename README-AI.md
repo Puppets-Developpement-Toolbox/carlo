@@ -28,7 +28,7 @@ usage (structure.yml, fields, templates), read [README.md](./README.md) first.
 | `src/carlo/YmlDriver.php` | standalone driver: demo data from a YAML file, picsum images |
 | `src/carlo/Introspection.php` | discovery of elements and variants in the driver's search paths |
 | `src/carlo/Stories.php` | component catalogue model: elements, their `*.stories.yml` examples, fields table (no WordPress) |
-| `src/carlo/Placeholders.php` | trait for a catalogue driver: generated content for empty fields, `WxH` placeholder images |
+| `src/carlo/Placeholders.php` | trait for a catalogue driver: generated content for empty fields, `WxH` placeholder images, fictitious references of an example (`storyReferences()`, created by the driver in `fakeReference()`) |
 | `src/templates/**` | generic sections and components (`.php`, `.yml`, `.stories.yml`) |
 | `wp.php` | plugin entry: loads the package autoload if needed, then `src/wp/*.php` |
 | `src/wp/carlo.php` | `CarloWpDriver` (file lookup, WordPress formatting, images), driver instance, post types, `carlo_menu`, `carlo_render_region`, `carlo_bootstrap` |
@@ -39,7 +39,7 @@ usage (structure.yml, fields, templates), read [README.md](./README.md) first.
 | `src/wp/assets.php` | theme assets through Vite (dev server or manifest), theme CSS in the editor canvas |
 | `src/wp/feature.php`, `media.php`, `menus.php`, `errors.php`, `archive.php` | WordPress defaults, image sizes, menu locations, error handler, archive AJAX |
 | `src/wp/templates/` | WordPress versions of `global/html_start`, `global/html_end`; `layout.php`, `error.php`, `archive.php`, `catalogue.php`, `frame.php` |
-| `src/wp/stories.php` | component catalogue in WordPress (not loaded in production): route, admin menu, `CarloStoriesDriver` |
+| `src/wp/stories.php` | component catalogue in WordPress (not loaded in production): route, admin menu, `CarloStoriesDriver` (fictitious posts in the object cache, IDs from 2000000001) |
 | `assets/sections.js`, `sections.css` | section block editor (no build step, no JSX) |
 | `assets/region.js`, `region.css` | region block editor |
 | `assets/catalogue.css` | catalogue page style |

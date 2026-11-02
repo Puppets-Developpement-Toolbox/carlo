@@ -272,6 +272,23 @@ image_only:
   image: 1600x900          # a placeholder image (or a media ID)
 ```
 
+A `reference` field takes post IDs, but IDs differ from one database to another. An example can instead use
+fictitious posts, which only exist in memory while the example is rendered (nothing is written to the database):
+
+```yaml
+generated:
+  dishes: 8                # 8 posts generated from the type: title, every meta: field, placeholder image
+described:
+  dishes:                  # posts described; omitted fields stay empty
+    - post_title: Œuf mayo
+      dish_description: Le classique du bistrot.   # a meta: field of the type
+      _thumbnail: 600x960                          # placeholder image (or a media ID)
+```
+
+Keys of a described post: `post_type` (one of the field's types, the first by default), `post_title`,
+`post_excerpt`, `post_content`, `_thumbnail` and the `meta:` fields of the type; any other key is an error shown
+in the preview. Templates read these posts like real ones (`get_post_meta()`, `get_post_thumbnail_id()`…).
+
 A variant without its own examples uses those of `base`, marked « (base) »; an element without any is listed
 as « aucun exemple », with its fields.
 
