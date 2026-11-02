@@ -5,8 +5,9 @@
  * le panneau Document de l'éditeur (cf. assets/sections.js, MetaPanel).
  */
 
-// Types de champs pris en charge : ceux qui tiennent dans une valeur scalaire.
-const CARLO_META_TYPES = ['text_short', 'text', 'number', 'boolean', 'choices', 'url'];
+// Types de champs pris en charge : une valeur scalaire (texte, texte riche, nombre, booléen, choix unique, lien), une
+// image (identifiant du média) ou une référence (liste d'identifiants de contenus, comme dans une section).
+const CARLO_META_TYPES = ['text_short', 'text', 'wysiwyg', 'number', 'boolean', 'choices', 'url', 'image', 'reference'];
 
 /**
  * Champs `meta:` d'un type de contenu, normalisés par Fields (vide si le type n'en déclare pas).
@@ -28,18 +29,33 @@ add_action('init', function () {
         $fields = carlo_meta_fields($post_type);
         $schema = carlo_block_attributes($fields);
         foreach ($fields as $key => $field) {
-            register_post_meta($post_type, $key, [
+            $type = $schema[$key]['type'];
+            $args = [
                 'single' => true,
-                'type' => $schema[$key]['type'],
+                'type' => $type,
                 'show_in_rest' => true,
                 'sanitize_callback' => match ($field['type']) {
                     'url' => 'esc_url_raw',
                     'text' => 'sanitize_textarea_field',
                     'text_short', 'choices' => 'sanitize_text_field',
+                    'wysiwyg' => 'wp_kses_post',
+                    'image' => 'absint',
+                    // Identifiants de contenus, dans la limite de _max.
+                    'reference' => fn($value) => array_slice(
+                        array_values(array_filter(array_map('absint', (array) $value))),
+                        0,
+                        $field['max'] ?: null
+                    ),
                     default => null,
                 },
                 'auth_callback' => fn($allowed, $meta_key, $post_id) => current_user_can('edit_post', $post_id),
-            ]);
+            ];
+            // Une référence est un tableau : l'API REST doit en connaître les éléments (des identifiants).
+            if ($type === 'array') {
+                $args['show_in_rest'] = ['schema' => ['type' => 'array', 'items' => ['type' => 'integer']]];
+                $args['default'] = [];
+            }
+            register_post_meta($post_type, $key, $args);
         }
     }
 });

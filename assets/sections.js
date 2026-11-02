@@ -261,7 +261,8 @@
                 'div',
                 { className: 'carlo-field__actions' },
                 el(Button, { variant: 'secondary', onClick: open }, value ? "Remplacer l'image" : 'Choisir une image'),
-                value && el(Button, { variant: 'tertiary', isDestructive: true, onClick: () => onChange(undefined) }, 'Retirer')
+                // Test explicite : une image vide d'un champ meta vaut 0, que React afficherait.
+                value ? el(Button, { variant: 'tertiary', isDestructive: true, onClick: () => onChange(undefined) }, 'Retirer') : null
               )
             ),
         })
@@ -334,10 +335,12 @@
     const [search, setSearch] = useState('');
     const { selected, results } = useSelect(
       (select) => {
+        // Libellé du type (« Marque », « Plat »…) plutôt que son nom technique.
+        const typeLabel = (type) => select('core').getPostType(type)?.labels?.singular_name ?? type;
         const query = (args) =>
           field.post_types.flatMap((type) =>
             (select('core').getEntityRecords('postType', type, { per_page: 20, status: 'publish', _fields: 'id,title,type', ...args }) || []).map(
-              (post) => ({ id: post.id, label: `${decodeEntities(post.title.rendered) || '(sans titre)'} · ${type}` })
+              (post) => ({ id: post.id, label: `${decodeEntities(post.title.rendered) || '(sans titre)'} · ${typeLabel(type)}` })
             )
           );
         return {
@@ -611,7 +614,8 @@
     return el(
       wp.editor.PluginDocumentSettingPanel,
       { name: 'carlo-meta', title: config.title, className: 'carlo-meta' },
-      el(Fields, { fields: config.fields, values: meta, onChange: (key, value) => setMeta({ ...meta, [key]: value }) })
+      // Un champ vidé (undefined) part en null : l'API REST supprime alors la meta, au lieu d'ignorer la clé.
+      el(Fields, { fields: config.fields, values: meta, onChange: (key, value) => setMeta({ ...meta, [key]: value ?? null }) })
     );
   }
 

@@ -198,8 +198,31 @@ types:
 
 Each field is a post meta (`register_post_meta`, exposed to the REST API: **never put a secret in it**), edited
 in a panel of the document sidebar of the block editor and read with `carlo_get_exposed('google_place_id')`,
-like any exposed data. Supported types: `text_short`, `text`, `number`, `boolean`, `choices` (single), `url`.
-The key is the exposed name: it must be unique among all exposed names.
+like any exposed data. Supported types: `text_short`, `text`, `wysiwyg`, `number`, `boolean`, `choices`
+(single), `url`, `image` and `reference`. The key is the exposed name: it must be unique among all exposed names.
+
+A `reference` links a content to others, e.g. a restaurant to its brand. It is stored as a list of post IDs
+(limited to `_max`) and read, like in a section, as published `WP_Post` objects. The referenced types need
+`show_in_rest` (the editor searches them through the REST API):
+
+```yaml
+types:
+  brand:
+    wp_args: { label: Marques, supports: [title], public: false, show_ui: true }
+    meta:
+      brand_logo: image
+  restaurant:
+    meta:
+      brand:
+        _type: reference
+        _label: Marque
+        _ref_type: brand
+        _max: 1
+```
+
+```php
+$brand = carlo_get_exposed('brand', $restaurant)[0] ?? null;   // WP_Post or null
+```
 
 ## The block editor
 

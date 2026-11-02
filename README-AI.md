@@ -33,7 +33,7 @@ usage (structure.yml, fields, templates), read [README.md](./README.md) first.
 | `wp.php` | plugin entry: loads the package autoload if needed, then `src/wp/*.php` |
 | `src/wp/carlo.php` | `CarloWpDriver` (file lookup, WordPress formatting, images), driver instance, post types, `carlo_menu`, `carlo_render_region`, `carlo_bootstrap` |
 | `src/wp/blocks.php` | one dynamic block per section: names, attribute schema, render callback, editor data |
-| `src/wp/meta.php` | `meta:` of a type: post meta registration, panel definition for the editor (`carloMeta` in the editor settings) |
+| `src/wp/meta.php` | `meta:` of a type: post meta registration (scalars, `image`, `reference` as a list of IDs with its REST schema), panel definition for the editor (`carloMeta` in the editor settings) |
 | `src/wp/regions.php` | the `carlo/region` block and its editor data (`window.carloRegions`) |
 | `src/wp/templates.php` | page/post templates: choice at creation, regions kept in the content, editor lock, admin column |
 | `src/wp/assets.php` | theme assets through Vite (dev server or manifest), theme CSS in the editor canvas |
