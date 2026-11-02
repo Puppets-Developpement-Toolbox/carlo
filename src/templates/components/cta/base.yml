@@ -1,3 +1,11 @@
-link: url
-label: text_short
-ancre: text_short
+link:
+  _type: url
+  _label: Lien
+  _help: Adresse de la page ou du site visé. Avec une ancre seule, le lien reste dans la page.
+label:
+  _type: text_short
+  _label: Libellé
+ancre:
+  _type: text_short
+  _label: Ancre
+  _help: Identifiant d'une section de la page, sans « # » (facultatif).
