@@ -39,6 +39,16 @@ with public_page() as page:
     check("le filtre réduit la liste", 0 < len(visible) < len(links) and all("quote" in v for v in visible), visible)
     page.fill("#filtre", "")
 
+    # Thème seulement : plus aucun élément de Carlo, les compteurs suivent, le choix est mémorisé.
+    page.check("#theme-seulement")
+    origins = page.locator("nav[aria-label='Composants'] a[data-origin]:visible").evaluate_all("as => as.map(a => a.dataset.origin)")
+    counted = sum(int(c) for c in page.locator("[data-count]").all_text_contents())
+    check("Thème seulement : éléments du thème uniquement", 0 < len(origins) < len(links) and "carlo" not in origins, origins)
+    check("Thème seulement : compteurs à jour", counted == len(origins), (counted, len(origins)))
+    page.reload(wait_until="domcontentloaded")
+    check("Thème seulement : mémorisé", page.is_checked("#theme-seulement"))
+    page.uncheck("#theme-seulement")
+
     documented, missing = 0, 0
     for url in links:
         element = parse_qs(urlparse(url).query)["id"][0]

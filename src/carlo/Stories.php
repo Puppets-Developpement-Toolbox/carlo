@@ -13,6 +13,9 @@ use Throwable;
  * carlo_get_available_components()). Les exemples sont rédigés dans <variante>.stories.yml, à côté du
  * template, dans un des dossiers de recherche du driver (thème, plugin, library). Un élément sans
  * exemple est affiché avec un contenu généré d'après ses champs (cf. Placeholders).
+ *
+ * Chaque élément a une origine, pour filtrer le catalogue : `carlo` (fourni par ce paquet), `project` (écrit
+ * par le projet : thème, namespace enregistré) ou `override` (fourni par ce paquet et surchargé par le projet).
  */
 class Stories
 {
@@ -40,6 +43,7 @@ class Stories
                     'stories' => [],
                     'stories_from_base' => false,
                     'stories_file' => "templates/{$type}/{$name}/{$variant}.stories.yml",
+                    'origin' => self::origin($id),
                     'errors' => [],
                 ];
                 // Une définition invalide ne doit pas empêcher d'afficher le reste du catalogue.
@@ -83,6 +87,46 @@ class Stories
         }
         $stories = array_filter((array) Yaml::parseFile($file), 'is_array');
         return [$stories, $variant !== 'base' && basename($file) !== "{$variant}.stories.yml"];
+    }
+
+    /**
+     * Origine d'un élément (cf. la classe). Il appartient au projet dès que son template ou sa structure, tels
+     * que le driver les résout, est hors de ce paquet ; il est surchargé si ce paquet en fournit aussi un fichier.
+     */
+    public static function origin(string $id): string
+    {
+        [$type, $name, $variant, $namespace] = carlo_explode_id($id);
+        $driver = carlo_driver();
+        $root = realpath(dirname(__DIR__, 2)) . DIRECTORY_SEPARATOR;
+        // realpath : le dossier du paquet peut être un lien symbolique (cf. README-AI, pièges).
+        $in_carlo = fn(string $path): bool => str_starts_with((realpath($path) ?: $path) . DIRECTORY_SEPARATOR, $root);
+
+        $project = false;
+        foreach (['template', 'structure'] as $role) {
+            try {
+                $project = $project || !$in_carlo($driver->getFile($role, "{$type}/{$name}", $variant, $namespace));
+            } catch (FileNotFoundException $e) {
+                // Élément sans .yml (ou sans template) : l'autre fichier décide.
+            }
+        }
+        if (!$project) {
+            return 'carlo';
+        }
+
+        // Fichiers de cette variante seulement : une variante ajoutée par le projet à un élément du paquet
+        // n'en surcharge aucune.
+        $files = ["{$type}/{$name}/{$variant}.php", "{$type}/{$name}/{$variant}.yml"];
+        if ($variant === 'base') {
+            $files[] = "{$type}/{$name}.php";
+        }
+        foreach (array_filter($driver->getSearchPaths($namespace), $in_carlo) as $dir) {
+            foreach ($files as $file) {
+                if (file_exists("{$dir}/{$file}")) {
+                    return 'override';
+                }
+            }
+        }
+        return 'project';
     }
 
     /**

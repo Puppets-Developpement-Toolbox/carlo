@@ -254,6 +254,10 @@ theme's CSS and JS: `/?carlo-stories`, or Appearance > Catalogue.
 
 - Not loaded in production (`WP_ENV`). Elsewhere (development, staging) it is public, without login, and sends
   `X-Robots-Tag: noindex`. Only discovered elements can be rendered.
+- « Thème seulement » keeps the elements of the project: those whose template or structure is resolved outside
+  this package (theme, registered namespace), including the package's elements overridden by the theme, marked
+  « surchargé ». The choice is remembered by the browser. Origin: `carlo\Stories::origin()` (`carlo`, `project`,
+  `override`).
 - Examples are written in `<variant>.stories.yml`, next to the template. Each key is an example; values use
   the block attributes format and get the same formatting as on the site:
 

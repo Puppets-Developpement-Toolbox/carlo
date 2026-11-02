@@ -15,6 +15,9 @@ if ($element && $element['stories'] && !isset($element['stories'][$story_key])) 
     $story_key = array_key_first($element['stories']);
 }
 $story_label = fn($key, $story) => $story['_label'] ?? ucfirst(str_replace('_', ' ', $key));
+// Badge d'origine dans la navigation : seule la surcharge est signalée, le filtre « Thème seulement » fait le reste.
+$origin_badge = fn($item) => $item['origin'] === 'override' ? ' <span class="badge">surchargé</span>' : '';
+$origin_label = ['carlo' => 'Carlo', 'project' => 'Thème', 'override' => 'Carlo, surchargé par le thème'];
 ?><!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -33,10 +36,14 @@ $story_label = fn($key, $story) => $story['_label'] ?? ucfirst(str_replace('_', 
       <span class="visually-hidden">Filtrer les composants</span>
       <input type="search" id="filtre" placeholder="Filtrer…" autocomplete="off">
     </label>
+    <label class="toggle">
+      <input type="checkbox" id="theme-seulement">
+      Thème seulement <span>(avec les surcharges)</span>
+    </label>
     <nav aria-label="Composants">
       <?php foreach ($groups as $group => $label): ?>
-        <h2><?= esc_html($label) ?> <span class="count"><?= count($elements[$group] ?? []) ?></span></h2>
-        <ul>
+        <h2><?= esc_html($label) ?> <span class="count" data-count="<?= esc_attr($group) ?>"><?= count($elements[$group] ?? []) ?></span></h2>
+        <ul data-group="<?= esc_attr($group) ?>">
           <?php
           $by_name = [];
           foreach ($elements[$group] ?? [] as $item) {
@@ -48,16 +55,16 @@ $story_label = fn($key, $story) => $story['_label'] ?? ucfirst(str_replace('_', 
             <li data-search="<?= esc_attr($search) ?>">
               <?php if (count($variants) === 1 && $variants[0]['variant'] === 'base'): ?>
                 <?php $item = $variants[0]; ?>
-                <a href="<?= esc_url(carlo_stories_url(['id' => $item['id']])) ?>" <?= $element && $element['id'] === $item['id'] ? 'aria-current="page"' : '' ?>>
-                  <?= esc_html($name) ?><?php if (!$item['stories']): ?> <span class="badge">aucun exemple</span><?php endif; ?>
+                <a href="<?= esc_url(carlo_stories_url(['id' => $item['id']])) ?>" data-origin="<?= esc_attr($item['origin']) ?>" <?= $element && $element['id'] === $item['id'] ? 'aria-current="page"' : '' ?>>
+                  <?= esc_html($name) ?><?= $origin_badge($item) ?><?php if (!$item['stories']): ?> <span class="badge">aucun exemple</span><?php endif; ?>
                 </a>
               <?php else: ?>
                 <span class="nav__name"><?= esc_html($name) ?></span>
                 <ul>
                   <?php foreach ($variants as $item): ?>
                     <li>
-                      <a href="<?= esc_url(carlo_stories_url(['id' => $item['id']])) ?>" <?= $element && $element['id'] === $item['id'] ? 'aria-current="page"' : '' ?>>
-                        <?= esc_html($item['variant']) ?><?php if ($item['stories_from_base']): ?> (base)<?php endif; ?><?php if (!$item['stories']): ?> <span class="badge">aucun exemple</span><?php endif; ?>
+                      <a href="<?= esc_url(carlo_stories_url(['id' => $item['id']])) ?>" data-origin="<?= esc_attr($item['origin']) ?>" <?= $element && $element['id'] === $item['id'] ? 'aria-current="page"' : '' ?>>
+                        <?= esc_html($item['variant']) ?><?php if ($item['stories_from_base']): ?> (base)<?php endif; ?><?= $origin_badge($item) ?><?php if (!$item['stories']): ?> <span class="badge">aucun exemple</span><?php endif; ?>
                       </a>
                     </li>
                   <?php endforeach; ?>
@@ -89,6 +96,7 @@ $story_label = fn($key, $story) => $story['_label'] ?? ucfirst(str_replace('_', 
       <header class="main__header">
         <h1><?= esc_html($element['title']) ?></h1>
         <code><?= esc_html($element['id']) ?></code>
+        <span class="badge"><?= esc_html($origin_label[$element['origin']]) ?></span>
       </header>
 
       <?php foreach ($element['errors'] as $error): ?>
@@ -161,13 +169,34 @@ $story_label = fn($key, $story) => $story['_label'] ?? ucfirst(str_replace('_', 
   </main>
 
   <script>
-    // Filtre de la navigation.
-    document.getElementById('filtre').addEventListener('input', (event) => {
-      const query = event.target.value.trim().toLowerCase();
+    // Filtres de la navigation : texte, et origine (« Thème seulement », mémorisé pour ce navigateur).
+    // Un nom reste affiché s'il garde au moins une variante ; les compteurs suivent.
+    const search = document.getElementById('filtre');
+    const themeOnly = document.getElementById('theme-seulement');
+    const filter = () => {
+      const query = search.value.trim().toLowerCase();
       document.querySelectorAll('[data-search]').forEach((item) => {
-        item.hidden = query !== '' && !item.dataset.search.includes(query);
+        let kept = 0;
+        item.querySelectorAll('a[data-origin]').forEach((link) => {
+          const keep = !themeOnly.checked || link.dataset.origin !== 'carlo';
+          const variant = link.closest('li');
+          if (variant !== item) variant.hidden = !keep;
+          kept += keep;
+        });
+        item.hidden = kept === 0 || (query !== '' && !item.dataset.search.includes(query));
       });
+      document.querySelectorAll('[data-count]').forEach((count) => {
+        const links = document.querySelectorAll(`[data-group="${count.dataset.count}"] a[data-origin]`);
+        count.textContent = [...links].filter((link) => !link.closest('[hidden]')).length;
+      });
+    };
+    try { themeOnly.checked = localStorage.getItem('carlo-stories-theme-only') === '1'; } catch (e) {}
+    search.addEventListener('input', filter);
+    themeOnly.addEventListener('change', () => {
+      try { localStorage.setItem('carlo-stories-theme-only', themeOnly.checked ? '1' : ''); } catch (e) {}
+      filter();
     });
+    filter();
 
     const frame = document.getElementById('apercu');
     if (frame) {

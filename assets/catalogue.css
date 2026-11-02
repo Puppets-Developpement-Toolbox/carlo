@@ -116,6 +116,19 @@ code {
   font: inherit;
 }
 
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.toggle span {
+  color: var(--text-muted);
+}
+
 .sidebar h2 {
   margin: 1.5rem 0 0.5rem;
   font-size: 0.75rem;
